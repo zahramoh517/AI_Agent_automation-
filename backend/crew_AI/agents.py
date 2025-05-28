@@ -1,11 +1,19 @@
-# backend/crew/agents.py
-
+# crew_AI/agents.py
 import os
-from groq import ChatGroq  # Use Groq if that’s your backend
+from dotenv import load_dotenv
+from crewai import Agent, LLM
 
-llm = ChatGroq(model="llama3-70b-8192", api_key=os.getenv("GROQ_API_KEY"))
+# Load environment variables
+load_dotenv()
 
-from crew_ai import Agent
+from crewai import LLM
+llm = LLM(
+    model="groq/llama3-70b-8192",
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.2,
+    max_tokens=500
+)
+
 
 resume_parser_agent = Agent(
     role='Resume Intake Agent',

@@ -1,7 +1,0 @@
-POST http://localhost:3000/api/match
-Content-Type: application/json
-
-{
-  "resume": "John has 3 years of experience in Python, SQL, and ML.",
-  "job": "Looking for a data analyst with Python and ML skills."
-}

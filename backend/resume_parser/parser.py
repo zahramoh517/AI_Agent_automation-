@@ -3,7 +3,7 @@
 #import os
 
 #from groq import Groq
-#export GROQ_API_KEY=<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>
+
 
 import spacy
 import re

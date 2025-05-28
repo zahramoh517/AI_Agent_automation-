@@ -1,6 +1,6 @@
 # backend/crew/tasks.py
 
-from crew_AI import Task
+from crewai import Task
 from .agents import (
     resume_parser_agent,
     job_parser_agent,
@@ -30,11 +30,13 @@ parse_job_description_task = Task(
 
 # Candidate-job matching (combined logic task)
 candidate_matching_task = Task(
-    description="Compare the parsed resume with the parsed job description to evaluate fit and rank the candidate.",
+    description="This will be overwritten in main_candidate_matcher.py",
     expected_output="Match score and explanation of compatibility.",
-    agent=candidate_matcher_agent,
-    depends_on=[resume_extraction_task, parse_job_description_task]
+    agent=candidate_matcher_agent
 )
+
+
+
 
 # Job description enhancement
 jd_enhancement_task = Task(
