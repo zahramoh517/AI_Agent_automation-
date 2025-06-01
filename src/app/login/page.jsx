@@ -4,6 +4,13 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/init";
 import Link from "next/link";
 
+const auth = getAuth();
+const user = auth.currentUser;
+
+if (user) { //USE UID var to connect all docs to one uer 
+  const uid = user.uid; 
+  const email = user.email; 
+}
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

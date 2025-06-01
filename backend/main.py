@@ -10,7 +10,7 @@ def save_json(data, filename):
 
 
 # === Step 1: Extract and parse resume ===
-resume_text = extract_text("/Users/malikasharma/Desktop/AI_Agent_automation-/Ama___Ada_resume.pdf")
+resume_text = extract_text("/Users/zahra/Desktop/AI_Agent_automation-/Ama___Ada_resume.pdf")
 parsed_resume = parse_resume(resume_text)
 
 print("Extracted Resume Text:\n", resume_text)
@@ -47,4 +47,4 @@ if parsed_resume:
     print("\nResult from CrewAI:\n")
     print(result)
 else:
-    print("❌ Parsed resume data is empty.")
+    print("Parsed resume data is empty.")
