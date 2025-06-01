@@ -1,10 +1,10 @@
 // src/lib/firebase/config.js
 export const firebaseConfig = {
-    apiKey: "AIzaSyAo1OuS5eyB6RRZl6c0TwLaYNGFR335Gtk",
-    authDomain: "ai-agent-71408.firebaseapp.com",
-    projectId: "ai-agent-71408",
-    storageBucket: "ai-agent-71408.firebasestorage.app",
-    messagingSenderId: "5026709032",
-    appId: "1:5026709032:web:75352880f995864b6bbf1d",
-    measurementId: "G-KBC57JN9TR"
-  };
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+};
