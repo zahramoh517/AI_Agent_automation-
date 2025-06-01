@@ -9,6 +9,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
