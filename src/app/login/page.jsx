@@ -4,7 +4,6 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/init";
 import Link from "next/link";
 
-const auth = getAuth();
 const user = auth.currentUser;
 
 if (user) { //USE UID var to connect all docs to one uer 
