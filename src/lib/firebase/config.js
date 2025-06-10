@@ -1,10 +1,9 @@
-// src/lib/firebase/config.js
 export const firebaseConfig = {
-    apiKey: "AIzaSyAo1OuS5eyB6RRZl6c0TwLaYNGFR335Gtk",
-    authDomain: "ai-agent-71408.firebaseapp.com",
-    projectId: "ai-agent-71408",
-    storageBucket: "ai-agent-71408.firebasestorage.app",
-    messagingSenderId: "5026709032",
-    appId: "1:5026709032:web:75352880f995864b6bbf1d",
-    measurementId: "G-KBC57JN9TR"
-  };
+  apiKey: "AIzaSyBJhrsHwYhgsD7Oevn3Gsp23H4xnLezlOU",
+  authDomain: "aiagent-8bc5a.firebaseapp.com",
+  projectId: "aiagent-8bc5a",
+  storageBucket: "aiagent-8bc5a.appspot.com",
+  messagingSenderId: "15889996742",
+  appId: "1:15889996742:web:1dc3888c6f308e1f1670c7",
+  measurementId: "G-5DXTSCJ7YJ"
+};
