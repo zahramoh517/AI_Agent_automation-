@@ -12,7 +12,7 @@ export default function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { signIn } = useAuth(); // 👈 use signIn from AuthContext
+  const { signIn } = useAuth();
   const router = useRouter();
 
   const handleRegister = async (e) => {
@@ -21,14 +21,19 @@ export default function Register() {
     setError("");
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      // ✅ Auto-login right after registration
+      //Auto-login immediately
       await signIn(email, password);
 
-      // ✅ Redirect to dashboard
+      //Set the Firebase ID token as a cookie for middleware auth
+      const token = await user.getIdToken();
+      document.cookie = `firebase-auth-token=${token}; path=/; max-age=3600`; // 1 hour
+
       router.push("/dashboard");
     } catch (err) {
+      console.error("Registration error:", err.code, err.message);
       setError(err.message);
       setLoading(false);
     }

@@ -10,6 +10,10 @@ export default function LogoutPage() {
   useEffect(() => {
     const runLogout = async () => {
       await signOut();
+
+      // 🔥 Clear the auth cookie so middleware doesn't think user is still logged in
+      document.cookie = "firebase-auth-token=; path=/; max-age=0";
+
       router.push("/login");
     };
 
