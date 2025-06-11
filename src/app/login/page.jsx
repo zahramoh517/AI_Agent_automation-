@@ -4,10 +4,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
-/**
- * Login Page Component
- * Handles user authentication and redirection to dashboard
- */
+const user = auth.currentUser;
+
+if (user) { //USE UID var to connect all docs to one uer 
+  const uid = user.uid; 
+  const email = user.email; 
+}
+
 export default function Login() {
   // Form state
   const [email, setEmail] = useState("");
