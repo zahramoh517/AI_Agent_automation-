@@ -7,11 +7,13 @@ from crew_AI.tasks import candidate_matching_task
 # Load environment variables
 load_dotenv()
 
+<<<<<<< HEAD
 groq_api_key = os.getenv("GROQ_API_KEY")
 
 # Load parsed resume
 with open("/Users/zahra/Desktop/AI_Agent_automation-/parsed_resume.json", "r") as f:
     parsed_resume = json.load(f)
+
 
 # Get the task from the reusable function
 task = candidate_matching_task(parsed_resume)
