@@ -21,15 +21,18 @@ export default function Login() {
     setLoginStatus("Attempting to log in...");
 
     try {
-      console.log("🔐 Attempting sign in...");
+      console.log(" Attempting sign in...");
       const userCredential = await signIn(email, password);
-      console.log("✅ Sign in successful:", userCredential.user.email);
-      setLoginStatus("Login successful! Redirecting...");
+      console.log("Sign in successful:", userCredential.user.email);
 
-      // Immediately redirect to dashboard
+      //Get Firebase ID token and set as cookie for middleware
+      const token = await userCredential.user.getIdToken();
+      document.cookie = `firebase-auth-token=${token}; path=/; max-age=3600`; // 1 hour
+
+      setLoginStatus("Login successful! Redirecting...");
       router.push("/dashboard");
     } catch (err) {
-      console.error("❌ Login error:", err.code, err.message);
+      console.error("Login error:", err.code, err.message);
       setLoading(false);
       setLoginStatus("");
 
