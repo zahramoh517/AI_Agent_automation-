@@ -4,12 +4,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 
-const user = auth.currentUser;
-
-if (user) { //USE UID var to connect all docs to one uer 
-  const uid = user.uid; 
-  const email = user.email; 
-}
 
 export default function Login() {
   // Form state

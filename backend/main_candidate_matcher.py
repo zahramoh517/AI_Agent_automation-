@@ -6,8 +6,7 @@ from crew_AI.tasks import candidate_matching_task
 
 # Load environment variables
 load_dotenv()
-
-<<<<<<< HEAD
+    
 groq_api_key = os.getenv("GROQ_API_KEY")
 
 # Load parsed resume

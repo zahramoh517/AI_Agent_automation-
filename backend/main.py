@@ -11,7 +11,7 @@ def save_json(data, filename):
 
 # === Step 1: Extract and parse resume ===
 resume_text = extract_text("/Users/amaansah/Documents/Download/Startup/Tubby_startup/AI_Agent_automation-/Ama___Ada_resume.pdf")
->>>>>>> origin/main
+
 parsed_resume = parse_resume(resume_text)
 
 print("Extracted Resume Text:\n", resume_text)
