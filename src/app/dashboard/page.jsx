@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [debugInfo, setDebugInfo] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const handleResumeUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      setDebugInfo(`File selected: ${file.name}`);
       if (file.type !== "application/pdf") {
         setError("Please upload a PDF file");
         return;
@@ -48,32 +50,48 @@ export default function Dashboard() {
   };
 
   const handleSubmit = async () => {
+    setDebugInfo("Submit button clicked");
+    
     if (!resume || !jobDescription) {
+      setDebugInfo("Missing resume or job description");
       setError("Please upload a resume and provide a job description");
       return;
     }
 
+    setDebugInfo("Starting resume processing...");
     setLoading(true);
     setError("");
+    setResult(null); // Clear previous result
 
     try {
       const formData = new FormData();
       formData.append("resume", resume);
       formData.append("jobDescription", jobDescription);
+      setDebugInfo("Sending data to API...");
 
       const response = await fetch("/api/resume", {
         method: "POST",
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to process resume");
-
       const data = await response.json();
-      setResult(data.result);
+      setDebugInfo(`Received response: ${JSON.stringify(data)}`);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to process resume");
+      }
+
+      if (!data.success) {
+        throw new Error(data.message || "Failed to process resume");
+      }
+
+      setResult(JSON.stringify(data.parsedResume, null, 2));
     } catch (err) {
-      setError(err.message);
+      setDebugInfo(`Error: ${err.message}`);
+      setError(err.message || "An error occurred while processing the resume");
     } finally {
       setLoading(false);
+      setDebugInfo("Processing complete");
     }
   };
 
@@ -88,6 +106,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0A1128] text-black px-4 pt-6">
+      {/* Debug info display */}
+      <div className="max-w-7xl mx-auto mb-4 p-4 bg-gray-100 rounded">
+        <p className="text-sm font-mono">Debug Info: {debugInfo}</p>
+      </div>
+
       {/* Top header with logout */}
       <div className="max-w-7xl mx-auto flex justify-between items-center mb-6">
         <p className="text-white text-lg">Welcome, {user?.email}</p>

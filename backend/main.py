@@ -24,7 +24,7 @@ job_description = """
 We're hiring a backend engineer with 2+ years of experience in Python, REST APIs, and database design. 
 Experience with cloud platforms like AWS is a plus.
 """
-
+'''
 from crewAI.agents import resume_parser_agent, job_matcher_agent
 from crewAI.tasks import parse_resume_task, match_job_task
 from crewai import Crew
@@ -50,3 +50,4 @@ if parsed_resume:
 else:
     print("Parsed resume data is empty.")
 
+'''

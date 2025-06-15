@@ -1,63 +1,89 @@
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
-import { extract_text } from "@/backend/resume_parser/extractor";
-import { parse_resume } from "@/backend/resume_parser/parser";
+import { spawn } from "child_process";
+
+// Function to run Python script and get output
+function runPythonScript(scriptPath, args) {
+  return new Promise((resolve, reject) => {
+    const pythonProcess = spawn('python3', [scriptPath, ...args]);
+    let output = '';
+    let error = '';
+
+    pythonProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      error += data.toString();
+    });
+
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`Python script failed: ${error}`));
+      } else {
+        resolve(output.trim());
+      }
+    });
+  });
+}
 
 export async function POST(req) {
+  console.log("📥 API: Received resume processing request");
   try {
     const formData = await req.formData();
     const resume = formData.get("resume");
     const jobDescription = formData.get("jobDescription");
 
+    console.log("📄 API: Resume file:", resume?.name);
+    console.log("📝 API: Job description length:", jobDescription?.length || 0);
+
     if (!resume || !jobDescription) {
+      console.error("❌ API: Missing resume or job description");
       return NextResponse.json(
         { error: "Resume and job description are required" },
         { status: 400 }
       );
     }
 
-    // Save the uploaded file temporarily
+    // Create resumes directory if it doesn't exist
+    const resumesDir = join(process.cwd(), "parsed_resumes");
+    try {
+      await mkdir(resumesDir, { recursive: true });
+      console.log("📁 API: Created parsed_resumes directory");
+    } catch (error) {
+      console.log("📁 API: parsed_resumes directory already exists");
+    }
+
+    // Save the uploaded file
+    console.log("💾 API: Saving resume file...");
     const bytes = await resume.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const tempPath = join("/tmp", resume.name);
-    await writeFile(tempPath, buffer);
+    const resumePath = join(resumesDir, resume.name);
+    await writeFile(resumePath, buffer);
+    console.log("✅ API: Resume file saved at:", resumePath);
 
-    // Extract and parse the resume
-    const resumeText = extract_text(tempPath);
-    const parsedResume = parse_resume(resumeText);
+    // Process resume using Python bridge
+    console.log("🔍 API: Processing resume...");
+    const bridgePath = join(process.cwd(), "backend", "resume_parser", "bridge.py");
+    const parsedResume = JSON.parse(await runPythonScript(bridgePath, [resumePath]));
+    console.log("✅ API: Resume processed successfully");
 
-    // Compare with job description using Groq
-    const prompt = `
-Compare this resume to the job description and rate how well it matches.
-Resume:
-${JSON.stringify(parsedResume, null, 2)}
+    // Save the parsed resume as JSON
+    const jsonPath = join(resumesDir, `${resume.name.replace('.pdf', '')}_parsed.json`);
+    console.log("💾 API: Saving parsed resume as JSON...");
+    await writeFile(jsonPath, JSON.stringify(parsedResume, null, 2));
+    console.log("✅ API: Parsed resume saved at:", jsonPath);
 
-Job Description:
-${jobDescription}
-
-Return a score out of 100 and explain briefly why.
-`;
-
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      }),
+    console.log("📤 API: Sending response back to client");
+    return NextResponse.json({ 
+      success: true,
+      message: "Resume parsed successfully",
+      parsedResume 
     });
 
-    const data = await groqRes.json();
-    const result = data?.choices?.[0]?.message?.content || "No response from model";
-
-    return NextResponse.json({ result });
   } catch (error) {
-    console.error("Error processing resume:", error);
+    console.error("❌ API Error:", error);
     return NextResponse.json(
       { error: "Failed to process resume" },
       { status: 500 }
