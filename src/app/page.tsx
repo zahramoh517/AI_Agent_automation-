@@ -5,149 +5,123 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { FileUp } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
-  const [jobDescription, setJobDescription] = useState('');
-  const [resume, setResume] = useState<File | null>(null);
-  const [ranking, setRanking] = useState<null | { score: number; explanation: string }>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [result, setResult] = useState<any>(null);
-
-  const handleSubmit = async () => {
-    if (!resume || !jobDescription) {
-      setError('Please upload a resume and provide a job description');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setResult(null);
-
-    try {
-      console.log('🚀 Starting resume processing...');
-      const formData = new FormData();
-      formData.append('resume', resume);
-      formData.append('jobDescription', jobDescription);
-
-      const response = await fetch('/api/resume', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-      console.log('📥 Received response:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to process resume');
-      }
-
-      // Display the parsed resume data
-      setResult(data.parsedResume);
-
-      // Get AI-based ranking
-      const rankingResponse = await fetch('/api/match', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          resume: JSON.stringify(data.parsedResume),
-          job: jobDescription
-        })
-      });
-
-      const rankingData = await rankingResponse.json();
-      
-      if (!rankingResponse.ok) {
-        throw new Error(rankingData.error || 'Failed to get ranking');
-      }
-
-      // Parse the AI response to extract score and explanation
-      const matchResult = rankingData.result;
-      const scoreMatch = matchResult.match(/Match Score:\s*(\d+)/);
-      const explanationMatch = matchResult.match(/Explanation:\s*([\s\S]+)/);
-
-      const score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
-      const explanation = explanationMatch ? explanationMatch[1].trim() : 'No explanation provided';
-
-      setRanking({
-        score,
-        explanation
-      });
-    } catch (err: any) {
-      console.error('❌ Error:', err);
-      setError(err.message || 'An error occurred while processing the resume');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { user } = useAuth();
+  const router = useRouter();
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-6 space-y-6">
-      <Card className="w-full max-w-2xl">
-        <CardContent className="space-y-4 p-6">
-          <h1 className="text-xl font-semibold">AI Resume Ranker</h1>
-
-          <div className="space-y-2">
-            <label className="text-sm">Upload PDF Resume</label>
-            <Input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setResume(e.target.files?.[0] || null)}
-              className="w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm">Paste Job Description</label>
-            <Textarea
-              rows={5}
-              placeholder="Enter the job description here..."
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              className="w-full"
-            />
-          </div>
-
-          <Button 
-            onClick={handleSubmit} 
-            disabled={!resume || !jobDescription || loading}
-            className="w-full"
-          >
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Processing...
-              </div>
+    <main className="min-h-screen bg-[#0A1128] text-white">
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+            <span className="block">AI-Powered</span>
+            <span className="block text-orange-500">Resume Analysis</span>
+          </h1>
+          <p className="mt-3 max-w-md mx-auto text-base text-gray-300 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+            Upload your resume and get instant AI-powered analysis against job descriptions. 
+            Get detailed insights and improve your chances of landing your dream job.
+          </p>
+          <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
+            {user ? (
+              <Button
+                onClick={() => router.push('/dashboard')}
+                className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 md:py-4 md:text-lg md:px-10"
+              >
+                Go to Dashboard
+              </Button>
             ) : (
-              "Rank Resume"
+              <div className="flex gap-4">
+                <Button
+                  onClick={() => router.push('/login')}
+                  className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 md:py-4 md:text-lg md:px-10"
+                >
+                  Login
+                </Button>
+                <Button
+                  onClick={() => router.push('/register')}
+                  variant="outline"
+                  className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-orange-500 border-orange-500 hover:bg-orange-500/10 md:py-4 md:text-lg md:px-10"
+                >
+                  Register
+                </Button>
+              </div>
             )}
-          </Button>
+          </div>
+        </div>
+      </div>
 
-          {error && (
-            <p className="text-red-500 text-center">{error}</p>
-          )}
+      {/* Features Section */}
+      <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-semibold mb-2">Smart Analysis</h3>
+              <p className="text-gray-300">
+                Our AI analyzes your resume against job descriptions to provide detailed insights and recommendations.
+              </p>
+            </CardContent>
+          </Card>
 
-          {result && (
-            <div className="mt-4 bg-gray-800 p-4 rounded-md">
-              <h3 className="font-semibold mb-2">Parsed Resume Data</h3>
-              <pre className="whitespace-pre-wrap text-sm">
-                {JSON.stringify(result, null, 2)}
-              </pre>
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-semibold mb-2">Instant Feedback</h3>
+              <p className="text-gray-300">
+                Get immediate feedback on how well your resume matches specific job requirements.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-800/50 border-gray-700">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-semibold mb-2">Improvement Tips</h3>
+              <p className="text-gray-300">
+                Receive actionable suggestions to enhance your resume and increase your chances of success.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* How It Works Section */}
+      <div className="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-xl font-bold">1</span>
             </div>
-          )}
+            <h3 className="text-xl font-semibold mb-2">Upload Resume</h3>
+            <p className="text-gray-300">
+              Upload your resume in PDF format
+            </p>
+          </div>
 
-          {ranking && (
-            <div className="mt-4 bg-gray-800 p-4 rounded-md">
-              <h3 className="font-semibold mb-2">Ranking Analysis</h3>
-              <p><strong>Score:</strong> {ranking.score}/100</p>
-              <p><strong>Explanation:</strong> {ranking.explanation}</p>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-xl font-bold">2</span>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <h3 className="text-xl font-semibold mb-2">Add Job Description</h3>
+            <p className="text-gray-300">
+              Paste the job description you're applying for
+            </p>
+          </div>
+
+          <div className="text-center">
+            <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-xl font-bold">3</span>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Get Analysis</h3>
+            <p className="text-gray-300">
+              Receive detailed analysis and improvement suggestions
+            </p>
+          </div>
+        </div>
+      </div>
     </main>
   );
-}
+} 
