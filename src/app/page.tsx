@@ -5,12 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function Home() {
-  const { user } = useAuth();
   const router = useRouter();
 
   return (
@@ -27,30 +25,21 @@ export default function Home() {
             Get detailed insights and improve your chances of landing your dream job.
           </p>
           <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-            {user ? (
+            <div className="flex gap-4">
               <Button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/login')}
                 className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 md:py-4 md:text-lg md:px-10"
               >
-                Go to Dashboard
+                Login
               </Button>
-            ) : (
-              <div className="flex gap-4">
-                <Button
-                  onClick={() => router.push('/login')}
-                  className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 md:py-4 md:text-lg md:px-10"
-                >
-                  Login
-                </Button>
-                <Button
-                  onClick={() => router.push('/register')}
-                  variant="outline"
-                  className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-orange-500 border-orange-500 hover:bg-orange-500/10 md:py-4 md:text-lg md:px-10"
-                >
-                  Register
-                </Button>
-              </div>
-            )}
+              <Button
+                onClick={() => router.push('/register')}
+                variant="outline"
+                className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-orange-500 border-orange-500 hover:bg-orange-500/10 md:py-4 md:text-lg md:px-10"
+              >
+                Register
+              </Button>
+            </div>
           </div>
         </div>
       </div>
