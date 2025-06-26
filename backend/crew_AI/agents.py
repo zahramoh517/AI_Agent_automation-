@@ -33,14 +33,16 @@ job_parser_agent = Agent(
     llm=llm
 )
 
-candidate_matcher_agent = Agent(
-    role='Candidate Ranker',
-    goal='Match resumes to job descriptions and rank candidates',
-    backstory='You are the matchmaker who compares every resume to the job description and decides who fits best, like a superbrain recruiter.',
-    allow_delegation=False,
-    verbose=True,
-    llm=llm
-)
+def get_candidate_matcher_agent():
+    return Agent(
+        role='Candidate Ranker',
+        goal='Match resumes to job descriptions and rank candidates',
+        backstory='You are the matchmaker who compares every resume to the job description and decides who fits best, like a super-brain recruiter.',
+        allow_delegation=False,
+        verbose=False,
+        llm=llm
+    )
+
 
 pipeline_orchestrator_agent = Agent(
     role='Flow Controller',
