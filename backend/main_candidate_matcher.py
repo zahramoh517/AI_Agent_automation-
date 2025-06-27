@@ -1,4 +1,3 @@
-# backend/main_candidate_matcher.py
 import os
 from dotenv import load_dotenv
 from crewai import Crew
@@ -6,17 +5,38 @@ from crew_AI.tasks import candidate_matching_task
 
 load_dotenv()
 
-# 1. Prepare your candidate data
+# 1) Dummy resumes
 parsed_resumes = [
-    {"name": "Alice Johnson", "email": "alice@example.com", "phone_number": "555-1234", "skills": ["Python", "Machine Learning", "AWS"]},
-    {"name": "Bob Singh",     "email": "bob@example.com",   "phone_number": "555-5678", "skills": ["SQL", "Power BI", "Data Visualization"]},
-    {"name": "Charlie Kim",   "email": "charlie@example.com","phone_number": "555-9012", "skills": ["JavaScript", "React", "Node.js"]},
+    {
+        "name": "Morgan Chen",
+        "email": "morgan.chen@example.com",
+        "phone_number": "416-123-4567",
+        "skills": ["Python", "Django", "PostgreSQL"],
+    },
+    {
+        "name": "Riley Thompson",
+        "email": "riley.thompson@example.com",
+        "phone_number": "416-234-5678",
+        "skills": ["Java", "Spring Boot", "Hibernate"],
+    },
+    {
+        "name": "Sarah O'Brien",
+        "email": "sarah.obrien@example.com",
+        "phone_number": "416-345-6789",
+        "skills": ["JavaScript", "Vue.js", "Tailwind CSS"],
+    },
+    {
+        "name": "Carlos Ramirez",
+        "email": "carlos.ramirez@example.com",
+        "phone_number": "416-456-7890",
+        "skills": ["Go", "Docker", "Kubernetes"],
+    },
 ]
 
-# 2. Create one matching task per resume
+# 2) Create one matching Task per resume
 tasks = [candidate_matching_task(resume) for resume in parsed_resumes]
 
-# 3. Instantiate Crew and run
+# 3) Instantiate Crew and run — verbose=False to suppress internal reasoning
 crew = Crew(
     agents=[t.agent for t in tasks],
     tasks=tasks,
@@ -25,24 +45,22 @@ crew = Crew(
 
 results = crew.kickoff()
 
-# 4. Print a clean summary
-print("\n=== Clean Match Results Summary ===\n")
-
-# extract task outputs
+# 4) Extract the Task outputs from kickoff events
 final_outputs = []
-for item in results:
-    if isinstance(item, tuple) and item[0] == "tasks_output":
-        final_outputs = item[1]
+for event, payload in results:
+    if event == "tasks_output":
+        final_outputs = payload
+        break
 
-# simplified parser: grab from first '---' to end
-for i, output in enumerate(final_outputs):
+# 5) Print a clean summary, grabbing the block from `.output`
+print("\n=== Clean Match Results Summary ===\n")
+for i, result_obj in enumerate(final_outputs):
     name = parsed_resumes[i]["name"]
-    raw = getattr(output, "raw", "") or ""
+    text = getattr(result_obj, "output", None) or str(result_obj)
 
-    if '---' in raw:
-        start = raw.find('---')
-        block = raw[start:].strip()
+    if '---' in text:
+        block = text[text.find('---'):].strip()
         print(f"📄 Candidate: {name}\n{block}")
     else:
-        print(f"📄 Candidate: {name}\n[⚠️ WARNING] Couldn't find a block:\n{raw.strip()}")
+        print(f"📄 Candidate: {name}\n[⚠️ Couldn't find match block]\n{text}")
     print("-" * 60)
