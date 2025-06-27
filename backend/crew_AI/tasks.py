@@ -1,5 +1,6 @@
 # backend/crew_AI/tasks.py
-
+import os
+from dotenv import load_dotenv
 from crewai import Task
 from .agents import (
     resume_parser_agent,
@@ -14,52 +15,43 @@ from .agents import (
     candidate_chatbot_agent
 )
 
-#Resume extraction
+load_dotenv()
+
+# 1) Resume extraction
 resume_extraction_task = Task(
     description="Extract raw text from the uploaded PDF or DOCX resume.",
     expected_output="Clean resume text",
     agent=resume_parser_agent
 )
 
-#Job description parsing
+# 2) Job description parsing
 parse_job_description_task = Task(
     description="Parse the job description and extract required skills, experience, and qualifications.",
     expected_output="Structured summary of job expectations and requirements.",
     agent=job_parser_agent
 )
 
-#Candidate-job matching
+# 3) Candidate-job matching (with guardrail)
 def candidate_matching_task(parsed_resume):
     job_description = """
 We're hiring a backend engineer with 2+ years of experience in Python, REST APIs, and database design.
 Experience with cloud platforms like AWS is a plus.
 """
 
-    # ← use the factory to get a fresh Agent each time
     matcher = get_candidate_matcher_agent()
 
     prompt = f"""
-You are a highly skilled AI candidate-matching agent.
-
-Here’s exactly how to output (including both opening **and** closing dashes):
-
----
-Match Score: 75
-
-Explanation:
-This is just a format example.
-
----
-
-Now do the same for this resume and job description:
+IMPORTANT: Do NOT output any reasoning, apologies, or commentary.
+Respond **only** with exactly this format and nothing else:
 
 ---
 Match Score: <number between 1 and 100>
 
 Explanation:
 <2-3 sentence explanation referencing relevant skills/experience>
-
 ---
+
+Now evaluate this candidate:
 
 RESUME:
 Name: {parsed_resume['name']}
@@ -69,11 +61,6 @@ Skills: {', '.join(parsed_resume['skills'])}
 
 JOB DESCRIPTION:
 {job_description}
-
-**Important:**
-• Do NOT say anything else.  
-• Do NOT prepend or append any apologies, commentary, or “Final Answer.”  
-• Just return that dashed block.
 """.strip()
 
     return Task(
@@ -84,7 +71,6 @@ Match Score: <number between 1 and 100>
 
 Explanation:
 <2-3 sentence explanation referencing relevant skills/experience>
-
 ---
 """.strip(),
         agent=matcher
@@ -138,3 +124,4 @@ screening_task = Task(
     expected_output="Screening assessment with pass/fail recommendation.",
     agent=candidate_chatbot_agent
 )
+
