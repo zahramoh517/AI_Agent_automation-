@@ -33,6 +33,7 @@ export default function Home() {
                 Login
               </Button>
               <Button
+              
                 onClick={() => router.push('/register')}
                 variant="outline"
                 className="w-full sm:w-auto px-8 py-3 text-base font-medium rounded-md text-orange-500 border-orange-500 hover:bg-orange-500/10 md:py-4 md:text-lg md:px-10"
