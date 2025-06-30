@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, FolderOpen, FileText } from "lucide-react";
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [debugInfo, setDebugInfo] = useState("");
+  const [fileLocations, setFileLocations] = useState(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -47,6 +48,7 @@ export default function Dashboard() {
       }
       setResume(file);
       setError("");
+      setFileLocations(null); // Clear previous file locations
     }
   };
 
@@ -63,6 +65,7 @@ export default function Dashboard() {
     setLoading(true);
     setError("");
     setResult(null); // Clear previous result
+    setFileLocations(null); // Clear previous file locations
 
     try {
       const formData = new FormData();
@@ -87,6 +90,10 @@ export default function Dashboard() {
       }
 
       setResult(JSON.stringify(data.parsedResume, null, 2));
+      setFileLocations({
+        uploaded: data.uploadedPath,
+        parsed: data.parsedPath
+      });
     } catch (err) {
       setDebugInfo(`Error: ${err.message}`);
       setError(err.message || "An error occurred while processing the resume");
@@ -174,6 +181,26 @@ export default function Dashboard() {
             </Button>
 
             {error && <p className="text-red-500 text-center">{error}</p>}
+
+            {/* File locations display */}
+            {fileLocations && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                <h3 className="font-semibold mb-3 text-green-800 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Files Saved Successfully
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <FolderOpen className="w-4 h-4" />
+                    <span><strong>Uploaded:</strong> {fileLocations.uploaded.split('/').slice(-2).join('/')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-green-700">
+                    <FileText className="w-4 h-4" />
+                    <span><strong>Parsed:</strong> {fileLocations.parsed.split('/').slice(-2).join('/')}</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {result && (
               <div className="mt-4 p-4 bg-gray-50 rounded-md">

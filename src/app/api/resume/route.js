@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, copyFile, unlink, access } from "fs/promises";
 import { join } from "path";
 import { spawn } from "child_process";
 
@@ -28,6 +28,16 @@ function runPythonScript(scriptPath, args) {
   });
 }
 
+// Function to ensure directory exists
+async function ensureDirectoryExists(dirPath) {
+  try {
+    await access(dirPath);
+  } catch {
+    await mkdir(dirPath, { recursive: true });
+    console.log(`📁 Created directory: ${dirPath}`);
+  }
+}
+
 export async function POST(req) {
   console.log("📥 API: Received resume processing request");
   try {
@@ -46,32 +56,30 @@ export async function POST(req) {
       );
     }
 
-    // Create resumes directory if it doesn't exist
-    const resumesDir = join(process.cwd(), "parsed_resumes");
-    try {
-      await mkdir(resumesDir, { recursive: true });
-      console.log("📁 API: Created parsed_resumes directory");
-    } catch (error) {
-      console.log("📁 API: parsed_resumes directory already exists");
-    }
+    // Ensure both directories exist
+    const uploadedResumesDir = join(process.cwd(), "resumes_uploaded");
+    const parsedResumesDir = join(process.cwd(), "resumes_parsed");
+    
+    await ensureDirectoryExists(uploadedResumesDir);
+    await ensureDirectoryExists(parsedResumesDir);
 
-    // Save the uploaded file
-    console.log("💾 API: Saving resume file...");
+    // Step 1: Save the uploaded file to resumes_uploaded folder
+    console.log("💾 API: Saving resume file to resumes_uploaded...");
     const bytes = await resume.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const resumePath = join(resumesDir, resume.name);
-    await writeFile(resumePath, buffer);
-    console.log("✅ API: Resume file saved at:", resumePath);
+    const uploadedResumePath = join(uploadedResumesDir, resume.name);
+    await writeFile(uploadedResumePath, buffer);
+    console.log("✅ API: Resume file saved to resumes_uploaded at:", uploadedResumePath);
 
-    // Process resume using Python bridge
+    // Step 2: Process resume using Python bridge
     console.log("🔍 API: Processing resume...");
     const bridgePath = join(process.cwd(), "backend", "resume_parser", "bridge.py");
-    const parsedResume = JSON.parse(await runPythonScript(bridgePath, [resumePath]));
+    const parsedResume = JSON.parse(await runPythonScript(bridgePath, [uploadedResumePath]));
     console.log("✅ API: Resume processed successfully");
 
-    // Save the parsed resume as JSON
-    const jsonPath = join(resumesDir, `${resume.name.replace('.pdf', '')}_parsed.json`);
-    console.log("💾 API: Saving parsed resume as JSON...");
+    // Step 3: Save the parsed resume as JSON to resumes_parsed folder
+    const jsonPath = join(parsedResumesDir, `${resume.name.replace('.pdf', '')}_parsed.json`);
+    console.log("💾 API: Saving parsed resume as JSON to resumes_parsed...");
     await writeFile(jsonPath, JSON.stringify(parsedResume, null, 2));
     console.log("✅ API: Parsed resume saved at:", jsonPath);
 
@@ -79,7 +87,9 @@ export async function POST(req) {
     return NextResponse.json({ 
       success: true,
       message: "Resume parsed successfully",
-      parsedResume 
+      parsedResume,
+      uploadedPath: uploadedResumePath,
+      parsedPath: jsonPath
     });
 
   } catch (error) {
