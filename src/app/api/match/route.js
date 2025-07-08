@@ -1,41 +1,68 @@
-// IMPORTANT: Use your own Groq API key in .env.local and download extension REST Client for testing
+import { exec } from "child_process";
+import path from "path";
+import fs from "fs/promises";
 
 export async function POST(req) {
-  console.log("POST /api/match route hit");
-
   try {
-    const { resume, job } = await req.json();
+    const body = await req.json();
+    const { resume_filename, job_description } = body;
 
-    const prompt = `
-Compare this resume to the job description and rate how well it matches.
-Resume:
-${resume}
+    if (!resume_filename || !job_description) {
+      return Response.json(
+        { error: "Missing resume filename or job description" },
+        { status: 400 }
+      );
+    }
 
-Job Description:
-${job}
+    // Path to parsed resume JSON
+    const parsedResumePath = path.join(
+      process.cwd(),
+      "resumes_parsed", // ✅ fixed path
+      `${resume_filename}_parsed.json`
+    );
 
-Return a score out of 100 and explain briefly why.
-`;
+    // ✅ Check if parsed resume file exists
+    try {
+      await fs.access(parsedResumePath);
+    } catch {
+      return Response.json(
+        { error: `Parsed resume file not found: ${parsedResumePath}` },
+        { status: 404 }
+      );
+    }
 
-    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      }),
+    // Path to Python script
+    const pythonScriptPath = path.join(process.cwd(), "backend", "run_matcher.py");
+
+    // Escape quotes in job description
+    const safeJobDescription = job_description.replace(/"/g, '\\"');
+
+    const command = `python3 "${pythonScriptPath}" "${parsedResumePath}" "${safeJobDescription}"`;
+
+    console.log("🚀 Running Python matcher...");
+    const result = await new Promise((resolve, reject) => {
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.error("❌ Python error:", stderr);
+          reject(stderr);
+        } else {
+          console.log("✅ Python result:", stdout);
+          resolve(stdout);
+        }
+      });
     });
 
-    const data = await groqRes.json();
-    const result = data?.choices?.[0]?.message?.content || "No response from model";
+    // ✅ Extract only JSON block from Python output
+    const jsonStart = result.indexOf("{");
+    const jsonEnd = result.lastIndexOf("}") + 1;
+    const cleanJson = result.slice(jsonStart, jsonEnd);
 
-    return Response.json({ result });
-  } catch (error) {
-    console.error("Groq API Error:", error);
-    return Response.json({ error: "Something went wrong" }, { status: 500 });
+    const matchResult = JSON.parse(cleanJson);
+
+    return Response.json({ result: matchResult });
+
+  } catch (err) {
+    console.error("❌ API /api/match error:", err);
+    return Response.json({ error: "Server error" }, { status: 500 });
   }
 }
