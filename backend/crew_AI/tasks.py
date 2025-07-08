@@ -31,13 +31,10 @@ parse_job_description_task = Task(
     agent=job_parser_agent
 )
 
-# 3) Candidate-job matching (with guardrail)
-def candidate_matching_task(parsed_resume):
-    job_description = """
-We're hiring a backend engineer with 2+ years of experience in Python, REST APIs, and database design.
-Experience with cloud platforms like AWS is a plus.
-"""
 
+
+# 3) Candidate-job matching (dynamic JD)
+def candidate_matching_task(parsed_resume, job_description):
     matcher = get_candidate_matcher_agent()
 
     prompt = f"""
@@ -51,13 +48,20 @@ Explanation:
 <2-3 sentence explanation referencing relevant skills/experience>
 ---
 
-Now evaluate this candidate:
+Now evaluate this candidate.
+
+Be sure to:
+- Carefully check **all sections of the resume** (skills, experience, projects, and education) for matches to the job description.  
+- Consider skills mentioned in **projects, developer tools, and technologies**, even if not in the primary experience section.  
+- Highlight relevant matches and explain any major gaps.
 
 RESUME:
-Name: {parsed_resume['name']}
-Email: {parsed_resume['email']}
-Phone: {parsed_resume['phone_number']}
-Skills: {', '.join(parsed_resume['skills'])}
+Name: {parsed_resume.get('name', 'N/A')}
+Contact: {parsed_resume.get('contact', {})}
+Education: {parsed_resume.get('education', [])}
+Experience: {parsed_resume.get('experience', [])}
+Projects: {parsed_resume.get('projects', [])}
+Skills: {parsed_resume.get('skills', {})}
 
 JOB DESCRIPTION:
 {job_description}
@@ -75,6 +79,8 @@ Explanation:
 """.strip(),
         agent=matcher
     )
+
+
 
 # 4) JD enhancement
 jd_enhancement_task = Task(

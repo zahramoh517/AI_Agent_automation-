@@ -49,12 +49,13 @@ export default function Dashboard() {
       setResume(file);
       setError("");
       setFileLocations(null); // Clear previous file locations
+      setResult(null); // Clear previous result
     }
   };
 
   const handleSubmit = async () => {
     setDebugInfo("Submit button clicked");
-    
+
     if (!resume || !jobDescription) {
       setDebugInfo("Missing resume or job description");
       setError("Please upload a resume and provide a job description");
@@ -68,10 +69,11 @@ export default function Dashboard() {
     setFileLocations(null); // Clear previous file locations
 
     try {
+      // === STEP 1: Upload resume and parse it ===
       const formData = new FormData();
       formData.append("resume", resume);
       formData.append("jobDescription", jobDescription);
-      setDebugInfo("Sending data to API...");
+      setDebugInfo("Sending data to /api/resume...");
 
       const response = await fetch("/api/resume", {
         method: "POST",
@@ -79,7 +81,7 @@ export default function Dashboard() {
       });
 
       const data = await response.json();
-      setDebugInfo(`Received response: ${JSON.stringify(data)}`);
+      setDebugInfo(`Received response from /api/resume: ${JSON.stringify(data)}`);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to process resume");
@@ -89,11 +91,38 @@ export default function Dashboard() {
         throw new Error(data.message || "Failed to process resume");
       }
 
-      setResult(JSON.stringify(data.parsedResume, null, 2));
       setFileLocations({
         uploaded: data.uploadedPath,
-        parsed: data.parsedPath
+        parsed: data.parsedPath,
       });
+
+      const parsedFilename = data.parsedPath
+        .split("/")
+        .pop()
+        .replace("_parsed.json", "");
+      setDebugInfo(`Parsed resume filename: ${parsedFilename}`);
+
+      // === STEP 2: Send parsed resume filename + job description to matcher ===
+      setDebugInfo("Sending data to /api/match...");
+      const matchResponse = await fetch("/api/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resume_filename: parsedFilename,
+          job_description: jobDescription,
+        }),
+      });
+
+      const matchData = await matchResponse.json();
+      setDebugInfo(`Received response from /api/match: ${JSON.stringify(matchData)}`);
+
+      if (!matchResponse.ok) {
+        throw new Error(matchData.error || "Failed to rank resume");
+      }
+
+      // === STEP 3: Display match score + explanation ===
+      setResult(matchData.result.match_score);
+
     } catch (err) {
       setDebugInfo(`Error: ${err.message}`);
       setError(err.message || "An error occurred while processing the resume");
@@ -204,7 +233,7 @@ export default function Dashboard() {
 
             {result && (
               <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                <h3 className="font-semibold mb-2">Analysis Result</h3>
+                <h3 className="font-semibold mb-2">Match Score & Explanation</h3>
                 <div className="whitespace-pre-wrap">{result}</div>
               </div>
             )}
