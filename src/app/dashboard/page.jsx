@@ -5,9 +5,17 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2, FolderOpen, FileText } from "lucide-react";
+import {
+  CheckCircle2,
+  LayoutDashboard,
+  BarChart2,
+  Lightbulb,
+  LifeBuoy,
+  Settings,
+  LogOut,
+  UserCircle,
+} from "lucide-react";
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -16,9 +24,9 @@ export default function Dashboard() {
   const [resume, setResume] = useState(null);
   const [jobDescription, setJobDescription] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [matchScore, setMatchScore] = useState(null);
+  const [explanation, setExplanation] = useState("");
   const [error, setError] = useState("");
-  const [debugInfo, setDebugInfo] = useState("");
   const [fileLocations, setFileLocations] = useState(null);
 
   useEffect(() => {
@@ -29,67 +37,52 @@ export default function Dashboard() {
 
   if (authLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0A1128] text-white">
+      <div className="min-h-screen flex items-center justify-center bg-[#F9FAFB] text-gray-800 font-[Inter]">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           <span className="text-lg">Loading dashboard...</span>
         </div>
       </div>
     );
   }
 
-  const handleResumeUpload = async (e) => {
+  const handleResumeUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setDebugInfo(`File selected: ${file.name}`);
       if (file.type !== "application/pdf") {
         setError("Please upload a PDF file");
         return;
       }
       setResume(file);
       setError("");
-      setFileLocations(null); // Clear previous file locations
-      setResult(null); // Clear previous result
+      setFileLocations(null);
+      setMatchScore(null);
+      setExplanation("");
     }
   };
 
   const handleSubmit = async () => {
-    setDebugInfo("Submit button clicked");
-
     if (!resume || !jobDescription) {
-      setDebugInfo("Missing resume or job description");
       setError("Please upload a resume and provide a job description");
       return;
     }
-
-    setDebugInfo("Starting resume processing...");
     setLoading(true);
     setError("");
-    setResult(null); // Clear previous result
-    setFileLocations(null); // Clear previous file locations
-
+    setMatchScore(null);
+    setExplanation("");
+    setFileLocations(null);
     try {
-      // === STEP 1: Upload resume and parse it ===
       const formData = new FormData();
       formData.append("resume", resume);
       formData.append("jobDescription", jobDescription);
-      setDebugInfo("Sending data to /api/resume...");
 
+      // STEP 1: upload & parse
       const response = await fetch("/api/resume", {
         method: "POST",
         body: formData,
       });
-
       const data = await response.json();
-      setDebugInfo(`Received response from /api/resume: ${JSON.stringify(data)}`);
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to process resume");
-      }
-
-      if (!data.success) {
-        throw new Error(data.message || "Failed to process resume");
-      }
+      if (!response.ok) throw new Error(data.error || "Failed to process resume");
 
       setFileLocations({
         uploaded: data.uploadedPath,
@@ -100,10 +93,8 @@ export default function Dashboard() {
         .split("/")
         .pop()
         .replace("_parsed.json", "");
-      setDebugInfo(`Parsed resume filename: ${parsedFilename}`);
 
-      // === STEP 2: Send parsed resume filename + job description to matcher ===
-      setDebugInfo("Sending data to /api/match...");
+      // STEP 2: match
       const matchResponse = await fetch("/api/match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,23 +103,16 @@ export default function Dashboard() {
           job_description: jobDescription,
         }),
       });
-
       const matchData = await matchResponse.json();
-      setDebugInfo(`Received response from /api/match: ${JSON.stringify(matchData)}`);
+      if (!matchResponse.ok) throw new Error(matchData.error || "Failed to rank resume");
 
-      if (!matchResponse.ok) {
-        throw new Error(matchData.error || "Failed to rank resume");
-      }
-
-      // === STEP 3: Display match score + explanation ===
-      setResult(matchData.result.match_score);
-
+      // display score & explanation
+      setMatchScore(matchData.result.match_score);
+      setExplanation(matchData.result.explanation);
     } catch (err) {
-      setDebugInfo(`Error: ${err.message}`);
-      setError(err.message || "An error occurred while processing the resume");
+      setError(err.message);
     } finally {
       setLoading(false);
-      setDebugInfo("Processing complete");
     }
   };
 
@@ -136,105 +120,135 @@ export default function Dashboard() {
     try {
       await signOut();
       router.push("/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
+    } catch (err) {
+      console.error("Error signing out:", err);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A1128] text-black px-4 pt-6">
-      {/* Debug info display */}
-      <div className="max-w-7xl mx-auto mb-4 p-4 bg-gray-100 rounded">
-        <p className="text-sm font-mono">Debug Info: {debugInfo}</p>
-      </div>
-
-      {/* Top header with logout */}
-      <div className="max-w-7xl mx-auto flex justify-between items-center mb-6">
-        <p className="text-white text-lg">Welcome, {user?.email}</p>
+    <div className="flex min-h-screen bg-[#F9FAFB] text-gray-900 font-[Inter]">
+      {/* Sidebar */}
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between shadow-sm">
+        <div>
+          <div className="text-2xl font-bold px-6 py-4 text-[#2563EB]">YourApp</div>
+          <nav className="space-y-2 mt-4">
+            <a
+              href="#"
+              className="flex items-center px-6 py-2 hover:bg-gray-100 rounded transition-colors duration-200 text-gray-700"
+            >
+              <LayoutDashboard className="w-5 h-5 mr-3" /> Dashboard
+            </a>
+            <a
+              href="#"
+              className="flex items-center px-6 py-2 hover:bg-gray-100 rounded transition-colors duration-200 text-gray-700"
+            >
+              <BarChart2 className="w-5 h-5 mr-3" /> Top Candidates
+            </a>
+            <a
+              href="#"
+              className="flex items-center px-6 py-2 hover:bg-gray-100 rounded transition-colors duration-200 text-gray-700"
+            >
+              <Lightbulb className="w-5 h-5 mr-3" /> Insights
+            </a>
+            <a
+              href="#"
+              className="flex items-center px-6 py-2 hover:bg-gray-100 rounded transition-colors duration-200 text-gray-700"
+            >
+              <LifeBuoy className="w-5 h-5 mr-3" /> Support
+            </a>
+            <a
+              href="#"
+              className="flex items-center px-6 py-2 hover:bg-gray-100 rounded transition-colors duration-200 text-gray-700"
+            >
+              <Settings className="w-5 h-5 mr-3" /> Settings
+            </a>
+          </nav>
+        </div>
         <button
           onClick={handleLogout}
-          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition"
+          className="flex items-center px-6 py-2 text-red-500 hover:bg-gray-100 rounded mb-4 transition-colors duration-200"
         >
-          Logout
+          <LogOut className="w-5 h-5 mr-3" /> Logout
         </button>
-      </div>
+      </aside>
 
-      {/* Resume upload card */}
-      <main>
-        <Card className="w-full max-w-2xl mx-auto">
-          <CardContent className="space-y-4 p-6">
-            <h2 className="text-xl font-semibold">AI Resume Ranker</h2>
+      {/* Main Content */}
+      <main className="flex-1 p-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-extrabold text-gray-900">Welcome, {user?.email}</h1>
+            <p className="text-gray-500 mt-1">
+              Start by uploading your resume and job description to get your match score.
+            </p>
+          </div>
+          <UserCircle className="w-10 h-10 text-gray-400" />
+        </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Upload PDF Resume</label>
-              <div className="flex items-center gap-4">
-                <Input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={handleResumeUpload}
-                  className="w-full"
-                />
-                {resume && (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span className="text-sm">{resume.name}</span>
-                  </div>
-                )}
-              </div>
+        <Card className="p-6 bg-white shadow rounded-2xl border border-gray-100">
+          <CardContent className="space-y-6">
+            <h2 className="text-2xl font-semibold text-gray-800">AI Resume Ranker</h2>
+
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-gray-600">Upload PDF Resume</label>
+              <Input
+                type="file"
+                accept="application/pdf"
+                onChange={handleResumeUpload}
+                className="w-full rounded border-gray-300 focus:border-[#2563EB] focus:ring focus:ring-[#93C5FD]"
+              />
+              {resume && (
+                <p className="text-green-600 text-sm flex items-center">
+                  <CheckCircle2 className="w-4 h-4 mr-1" /> {resume.name}
+                </p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Paste Job Description</label>
-              <Textarea
-                rows={5}
-                placeholder="Enter the job description here..."
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-gray-600">Paste Job Description</label>
+              <textarea
+                rows={4}
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                className="w-full"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:border-[#2563EB] focus:ring focus:ring-[#93C5FD]"
+                placeholder="Enter job description here..."
               />
             </div>
 
             <Button
               onClick={handleSubmit}
               disabled={!resume || !jobDescription || loading}
-              className="w-full"
+              className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium py-2 rounded-lg shadow"
             >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Processing...
-                </div>
-              ) : (
-                "Rank Resume"
-              )}
+              {loading ? "Processing..." : "Rank Resume"}
             </Button>
 
-            {error && <p className="text-red-500 text-center">{error}</p>}
+            {error && <p className="text-red-500 text-center font-medium">{error}</p>}
 
-            {/* File locations display */}
             {fileLocations && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-                <h3 className="font-semibold mb-3 text-green-800 flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5" />
-                  Files Saved Successfully
+              <div className="mt-4 p-4 bg-green-50 border border-green-100 rounded-lg">
+                <h3 className="font-semibold mb-3 text-green-700 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5" /> Files Saved Successfully
                 </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <FolderOpen className="w-4 h-4" />
-                    <span><strong>Uploaded:</strong> {fileLocations.uploaded.split('/').slice(-2).join('/')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-green-700">
-                    <FileText className="w-4 h-4" />
-                    <span><strong>Parsed:</strong> {fileLocations.parsed.split('/').slice(-2).join('/')}</span>
-                  </div>
-                </div>
+                <p className="text-sm text-green-700">
+                  <strong>Uploaded:</strong> {fileLocations.uploaded}
+                </p>
+                <p className="text-sm text-green-700">
+                  <strong>Parsed:</strong> {fileLocations.parsed}
+                </p>
               </div>
             )}
 
-            {result && (
+            {(matchScore !== null || explanation) && (
               <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                <h3 className="font-semibold mb-2">Match Score & Explanation</h3>
-                <div className="whitespace-pre-wrap">{result}</div>
+                <h3 className="font-semibold mb-2 text-gray-800">Match Score &amp; Explanation</h3>
+                {matchScore !== null && (
+                  <p className="text-1xl font-bold text-[#2563EB]">{matchScore}</p>
+                )}
+                {explanation && (
+                  <div className="whitespace-pre-wrap mt-2 text-gray-600">
+                    {explanation}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
