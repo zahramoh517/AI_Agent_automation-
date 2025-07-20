@@ -6,12 +6,12 @@ from .agents import (
     resume_parser_agent,
     job_parser_agent,
     get_candidate_matcher_agent,
-    jd_enhancer_agent,
     pipeline_orchestrator_agent,
     tracking_agent,
     voice_interpreter_agent,
     prompt_translator_agent,
-    question_generator_agent,
+    question_agent,
+    evaluator_agent,
     candidate_chatbot_agent
 )
 
@@ -118,13 +118,57 @@ prompt_translation_task = Task(
 )
 
 # 9) Question generation
-question_generation_task = Task(
-    description="Generate interview questions and a scoring rubric using the job description and intent.",
-    expected_output="List of interview questions and a rubric.",
-    agent=question_generator_agent
-)
+def generate_question_task(job_description, resume_text):
+    return Task(
+        description=(
+            "Generate EXACTLY 5 technical interview questions based on the job description "
+            "and resume. Each question must:\n"
+            "1. Reference specific skills/experience from the resume\n"
+            "2. Relate directly to the job requirements\n"
+            "3. Be technical in nature\n"
+            "4. Be numbered (1-5)\n"
+            "5. End with a question mark\n\n"
+            "Job Description:\n{job_description}\n\nResume:\n{resume_text}"
+        ).format(job_description=job_description, resume_text=resume_text),
+        expected_output="""1. [Specific technical question about candidate's experience]?
+2. [Question about a required job skill]?
+3. [Question combining resume experience and job needs]?
+4. [Deep technical question about a relevant technology]?
+5. [Question about implementing solutions from the job description]?""",
+        agent=question_agent
+    )
+# 10) Queevaluate_answers_task
+def evaluate_answers_task(answers):
+    """Task to evaluate interview answers based on question relevance"""
+    return Task(
+        description=f"""
+        CRITICAL INSTRUCTIONS:
+        1. Evaluate EACH answer separately
+        2. Use EXACTLY this format for each question:
+        ----------------------------------------
+        Score: X/10 (1=Poor, 10=Excellent)
+        Evaluation:
+        - Completeness: [1-5] 
+        - Clarity: [1-5]
+        - Specificity: [1-5]
+        - Technical Accuracy: [1-5]
+        Strengths:
+        - [List specific strengths]
+        Weaknesses:
+        - [List specific weaknesses]
+        ----------------------------------------
+        3. After all questions, provide:
+        Final Verdict: [Strong Hire/Hire/Weak Hire/No Hire]
 
-# 10) Candidate screening chat
+        ANSWERS TO EVALUATE:
+        {answers}
+        """,
+        expected_output="Structured evaluation following EXACT required format",
+        agent=evaluator_agent()
+    )
+
+
+# 11) Candidate screening chat
 screening_task = Task(
     description="Use the candidate chat interaction to assess suitability and provide a screening summary.",
     expected_output="Screening assessment with pass/fail recommendation.",

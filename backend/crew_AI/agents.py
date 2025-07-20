@@ -62,14 +62,6 @@ tracking_agent = Agent(
     llm=llm
 )
 
-jd_enhancer_agent = Agent(
-    role='JD Rewriter',
-    goal='Improve job description clarity and appeal',
-    backstory='You are the editor. You polish the JD — remove jargon, make it inclusive, and align it with what candidates care about.',
-    allow_delegation=False,
-    verbose=True,
-    llm=llm
-)
 
 voice_interpreter_agent = Agent(
     role='Audio Transcriber',
@@ -89,14 +81,40 @@ prompt_translator_agent = Agent(
     llm=llm
 )
 
-question_generator_agent = Agent(
-    role='Question Builder',
-    goal='Generate interview questions and rubric',
-    backstory='You take the JD and intent and build smart, targeted questions — like a curriculum designer planning the perfect interview.',
-    allow_delegation=False,
+question_agent = Agent(
+    role="Role-Specific Interview Question Generator",
+    goal="Create specific, challenging interview questions tailored to the job description and candidate background",
+    backstory=(
+        "You are a seasoned hiring expert with over 10 years of experience conducting interviews across technical and non-technical roles "
+        "at top-tier companies. You're known for designing insightful questions that assess real-world capability and problem-solving skills."
+    ),
+    llm=llm,
     verbose=True,
-    llm=llm
+    max_iter=3,
+    memory=True,
 )
+def evaluator_agent():
+    """Agent to evaluate answers based on relevance and depth, applicable to any role"""
+    return Agent(
+        role="Interview Answer Evaluator",
+        goal="Provide strict, structured evaluations of candidate answers using the required format",
+        backstory="A highly experienced interviewer with over a decade of cross-functional hiring expertise, skilled at assessing candidates in both technical and non-technical domains.",
+        llm=llm,
+        verbose=True,
+        allow_delegation=False,
+        constraints=[
+            "MUST use the exact evaluation format provided",
+            "Score answers strictly based on relevance, clarity, and depth",
+            "Provide specific, actionable feedback",
+            "Never deviate from the required output structure"
+        ],
+        examples=[{
+            "input": "Question: How do you prioritize tasks when managing multiple projects?\nAnswer: I use a calendar.",
+            "output": "Score: 5/10\nEvaluation:\n- Completeness: 3\n- Clarity: 6\n- Relevance: 5\nFeedback: The answer is too general. Explain your prioritization framework or tools used.\n..."
+        }]
+    )
+
+
 
 candidate_chatbot_agent = Agent(
     role='Interactive Interviewer',
