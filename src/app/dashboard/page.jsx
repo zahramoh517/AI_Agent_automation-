@@ -51,6 +51,19 @@ export default function Dashboard() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [expandedExplanations, setExpandedExplanations] = useState(new Set());
 
+  // Load progress from localStorage on component mount
+  useEffect(() => {
+    const savedProgress = localStorage.getItem('batchProgress');
+    if (savedProgress) {
+      try {
+        const progress = JSON.parse(savedProgress);
+        setBatchProgress(progress);
+      } catch (error) {
+        console.error('Error loading saved progress:', error);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
@@ -240,12 +253,14 @@ export default function Dashboard() {
       return;
     }
 
-    setBatchProgress({
+    const initialProgress = {
       total: batchFolder.length,
       processed: 0,
       current: "Uploading files...",
       status: "uploading"
-    });
+    };
+    setBatchProgress(initialProgress);
+    saveProgress(initialProgress);
     setError("");
     setBatchResults([]);
 
@@ -269,12 +284,14 @@ export default function Dashboard() {
 
       const data = await response.json();
       
-      setBatchProgress({
+      const matchingProgress = {
         total: batchFolder.length,
         processed: 0,
-        current: "Matching resumes (with retry protection)...",
+        current: "Matching resumes in batches...",
         status: "matching"
-      });
+      };
+      setBatchProgress(matchingProgress);
+      saveProgress(matchingProgress);
 
       // STEP 2: Match all resumes
       const matchResponse = await fetch("/api/match/batch", {
@@ -300,24 +317,28 @@ export default function Dashboard() {
       );
 
       setBatchResults(sortedResults);
-      setBatchProgress({
+      const completeProgress = {
         total: batchFolder.length,
         processed: batchFolder.length,
         current: "",
         status: "complete"
-      });
+      };
+      setBatchProgress(completeProgress);
+      saveProgress(completeProgress);
 
       // Show success message with file locations
       console.log(`✅ Batch processing complete. Files saved in: ${data.batchFolder}`);
 
     } catch (err) {
       setError(err.message);
-      setBatchProgress({
+      const errorProgress = {
         total: batchFolder.length,
         processed: 0,
         current: "",
         status: "idle"
-      });
+      };
+      setBatchProgress(errorProgress);
+      saveProgress(errorProgress);
     }
   };
 
@@ -339,13 +360,15 @@ export default function Dashboard() {
     setExplanation("");
     setFileLocations(null);
     setBatchResults([]);
-    setBatchProgress({
+    const resetProgress = {
       total: 0,
       processed: 0,
       current: "",
       status: "idle"
-    });
+    };
+    setBatchProgress(resetProgress);
     setExpandedExplanations(new Set());
+    clearProgress();
   };
 
   const toggleExplanation = (index) => {
@@ -365,6 +388,24 @@ export default function Dashboard() {
 
   const collapseAllExplanations = () => {
     setExpandedExplanations(new Set());
+  };
+
+  // Save progress to localStorage
+  const saveProgress = (progress) => {
+    try {
+      localStorage.setItem('batchProgress', JSON.stringify(progress));
+    } catch (error) {
+      console.error('Error saving progress:', error);
+    }
+  };
+
+  // Clear saved progress
+  const clearProgress = () => {
+    try {
+      localStorage.removeItem('batchProgress');
+    } catch (error) {
+      console.error('Error clearing progress:', error);
+    }
   };
 
   return (
@@ -430,13 +471,24 @@ export default function Dashboard() {
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-semibold text-gray-800">AI Resume Ranker</h2>
-              <Button
-                onClick={resetForm}
-                variant="outline"
-                className="text-sm"
-              >
-                Reset Form
-              </Button>
+              <div className="flex gap-2">
+                {batchProgress.status !== "idle" && (
+                  <Button
+                    onClick={clearProgress}
+                    variant="outline"
+                    className="text-sm"
+                  >
+                    Clear Progress
+                  </Button>
+                )}
+                <Button
+                  onClick={resetForm}
+                  variant="outline"
+                  className="text-sm"
+                >
+                  Reset Form
+                </Button>
+              </div>
             </div>
 
             {/* Upload Mode Toggle */}
@@ -566,6 +618,16 @@ export default function Dashboard() {
                     style={{ width: `${(batchProgress.processed / batchProgress.total) * 100}%` }}
                   ></div>
                 </div>
+                {batchProgress.status === "uploading" && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    ⚡ Processing in optimized batches with rate limit protection
+                  </p>
+                )}
+                {batchProgress.status === "matching" && (
+                  <p className="text-xs text-blue-600 mt-2">
+                    🔄 Matching resumes with automatic retry logic
+                  </p>
+                )}
               </div>
             )}
 

@@ -14,8 +14,11 @@ An intelligent resume ranking system that uses AI to match candidates with job d
 - **Folder Drag & Drop**: Simply drag and drop a folder containing multiple PDF resumes
 - **Multiple File Selection**: Select multiple PDF files individually
 - **Organized Output**: Files are automatically organized into timestamped batch folders
-- **Bulk Matching**: Process dozens of resumes simultaneously
+- **Optimized Batch Processing**: Processes resumes in smaller chunks (8-15 per batch) to prevent rate limits
+- **Smart Delays**: Longer delays between batches (3-5 seconds) for large quantities
+- **Progress Persistence**: Saves progress to localStorage, survives browser refreshes
 - **Rate Limit Protection**: Automatic retry logic with exponential backoff for API rate limits
+- **Bulk Matching**: Process dozens of resumes simultaneously
 - **Ranked Results**: View all candidates ranked by match score
 
 ## Getting Started

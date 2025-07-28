@@ -43,30 +43,24 @@ const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
   }
 };
 
-export async function POST(req) {
-  try {
-    const body = await req.json();
-    const { resume_filenames, job_description, batch_folder } = body;
+// Function to process matching in smaller batches
+async function processMatchingBatch(resume_filenames, job_description, batch_folder, batchSize = 10) {
+  const results = [];
+  const errors = [];
 
-    if (!resume_filenames || !resume_filenames.length || !job_description) {
-      return Response.json(
-        { error: "Missing resume filenames or job description" },
-        { status: 400 }
-      );
-    }
+  // Process resumes in smaller batches
+  for (let i = 0; i < resume_filenames.length; i += batchSize) {
+    const batchResumes = resume_filenames.slice(i, i + batchSize);
+    const batchNumber = Math.floor(i / batchSize) + 1;
+    const totalBatches = Math.ceil(resume_filenames.length / batchSize);
+    
+    console.log(`🔄 API: Matching batch ${batchNumber}/${totalBatches} (${batchResumes.length} resumes)`);
 
-    console.log(`🚀 API: Starting batch matching for ${resume_filenames.length} resumes`);
-    if (batch_folder) {
-      console.log(`📁 API: Processing batch folder: ${batch_folder}`);
-    }
-
-    const results = [];
-    const errors = [];
-
-    // Process each resume with retry logic
-    for (let i = 0; i < resume_filenames.length; i++) {
-      const resume_filename = resume_filenames[i];
-      console.log(`🔄 API: Matching resume ${i + 1}/${resume_filenames.length}: ${resume_filename}`);
+    // Process each resume in the current batch
+    for (let j = 0; j < batchResumes.length; j++) {
+      const resume_filename = batchResumes[j];
+      const globalIndex = i + j;
+      console.log(`🔄 API: Matching resume ${globalIndex + 1}/${resume_filenames.length}: ${resume_filename}`);
 
       try {
         // Path to parsed resume JSON (with batch folder if provided)
@@ -133,10 +127,9 @@ export async function POST(req) {
 
         console.log(`✅ API: Successfully matched ${resume_filename}`);
 
-        // Add a small delay between processing resumes to help prevent rate limits
-        if (i < resume_filenames.length - 1) {
-          console.log(`⏳ Adding delay between resume processing...`);
-          await sleep(1000); // 1 second delay
+        // Small delay between individual resumes within a batch
+        if (j < batchResumes.length - 1) {
+          await sleep(1000); // 1 second between resumes in same batch
         }
 
       } catch (error) {
@@ -148,6 +141,46 @@ export async function POST(req) {
         });
       }
     }
+    
+    // Longer delay between batches to prevent rate limits
+    if (i + batchSize < resume_filenames.length) {
+      const delay = resume_filenames.length > 20 ? 5000 : 3000; // 5s for large batches, 3s for smaller
+      console.log(`⏳ API: Matching batch ${batchNumber} complete. Waiting ${delay}ms before next batch...`);
+      await sleep(delay);
+    }
+  }
+  
+  return { results, errors };
+}
+
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    const { resume_filenames, job_description, batch_folder } = body;
+
+    if (!resume_filenames || !resume_filenames.length || !job_description) {
+      return Response.json(
+        { error: "Missing resume filenames or job description" },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🚀 API: Starting batch matching for ${resume_filenames.length} resumes`);
+    if (batch_folder) {
+      console.log(`📁 API: Processing batch folder: ${batch_folder}`);
+    }
+
+    // Determine batch size based on total number of resumes
+    const batchSize = resume_filenames.length > 50 ? 8 : resume_filenames.length > 20 ? 10 : 15;
+    console.log(`📊 API: Using batch size of ${batchSize} for ${resume_filenames.length} resumes`);
+
+    // Process matching in batches
+    const { results, errors } = await processMatchingBatch(
+      resume_filenames, 
+      job_description, 
+      batch_folder, 
+      batchSize
+    );
 
     const successfulCount = results.length;
     const failedCount = errors.length;
@@ -167,10 +200,12 @@ export async function POST(req) {
       results,
       errors,
       batch_folder: batch_folder || null,
+      batchSize: batchSize,
       stats: {
         total: resume_filenames.length,
         successful: successfulCount,
-        failed: failedCount
+        failed: failedCount,
+        batches: Math.ceil(resume_filenames.length / batchSize)
       }
     });
 

@@ -45,41 +45,27 @@ function generateBatchFolderName() {
   return `batch_${timestamp}`;
 }
 
-export async function POST(req) {
-  console.log("📥 API: Received batch resume processing request");
-  try {
-    const formData = await req.formData();
-    const resumes = formData.getAll("resumes");
-    const jobDescription = formData.get("jobDescription");
+// Function to sleep for a given number of milliseconds
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    console.log("📄 API: Number of resumes:", resumes.length);
-    console.log("📝 API: Job description length:", jobDescription?.length || 0);
-
-    if (!resumes || resumes.length === 0 || !jobDescription) {
-      console.error("❌ API: Missing resumes or job description");
-      return NextResponse.json(
-        { error: "Resumes and job description are required" },
-        { status: 400 }
-      );
-    }
-
-    // Generate batch folder name
-    const batchFolderName = generateBatchFolderName();
+// Function to process resumes in smaller batches
+async function processResumeBatch(resumes, batchFolderName, uploadedResumesDir, parsedResumesDir, batchSize = 10) {
+  const processedResults = [];
+  const parsedFilenames = [];
+  
+  // Process resumes in smaller batches
+  for (let i = 0; i < resumes.length; i += batchSize) {
+    const batchResumes = resumes.slice(i, i + batchSize);
+    const batchNumber = Math.floor(i / batchSize) + 1;
+    const totalBatches = Math.ceil(resumes.length / batchSize);
     
-    // Ensure directories exist with batch subfolders
-    const uploadedResumesDir = join(process.cwd(), "resumes_uploaded", batchFolderName);
-    const parsedResumesDir = join(process.cwd(), "resumes_parsed", batchFolderName);
+    console.log(`🔄 API: Processing batch ${batchNumber}/${totalBatches} (${batchResumes.length} resumes)`);
     
-    await ensureDirectoryExists(uploadedResumesDir);
-    await ensureDirectoryExists(parsedResumesDir);
-
-    const processedResults = [];
-    const parsedFilenames = [];
-
-    // Process each resume
-    for (let i = 0; i < resumes.length; i++) {
-      const resume = resumes[i];
-      console.log(`🔄 API: Processing resume ${i + 1}/${resumes.length}: ${resume.name}`);
+    // Process each resume in the current batch
+    for (let j = 0; j < batchResumes.length; j++) {
+      const resume = batchResumes[j];
+      const globalIndex = i + j;
+      console.log(`📄 API: Processing resume ${globalIndex + 1}/${resumes.length}: ${resume.name}`);
 
       try {
         // Step 1: Save the uploaded file to resumes_uploaded/batch_folder
@@ -125,7 +111,64 @@ export async function POST(req) {
           error: error.message
         });
       }
+      
+      // Small delay between individual resumes within a batch
+      if (j < batchResumes.length - 1) {
+        await sleep(1000); // 1 second between resumes in same batch
+      }
     }
+    
+    // Longer delay between batches to prevent rate limits
+    if (i + batchSize < resumes.length) {
+      const delay = resumes.length > 20 ? 5000 : 3000; // 5s for large batches, 3s for smaller
+      console.log(`⏳ API: Batch ${batchNumber} complete. Waiting ${delay}ms before next batch...`);
+      await sleep(delay);
+    }
+  }
+  
+  return { processedResults, parsedFilenames };
+}
+
+export async function POST(req) {
+  console.log("📥 API: Received batch resume processing request");
+  try {
+    const formData = await req.formData();
+    const resumes = formData.getAll("resumes");
+    const jobDescription = formData.get("jobDescription");
+
+    console.log("📄 API: Number of resumes:", resumes.length);
+    console.log("📝 API: Job description length:", jobDescription?.length || 0);
+
+    if (!resumes || resumes.length === 0 || !jobDescription) {
+      console.error("❌ API: Missing resumes or job description");
+      return NextResponse.json(
+        { error: "Resumes and job description are required" },
+        { status: 400 }
+      );
+    }
+
+    // Determine batch size based on total number of resumes
+    const batchSize = resumes.length > 50 ? 8 : resumes.length > 20 ? 10 : 15;
+    console.log(`📊 API: Using batch size of ${batchSize} for ${resumes.length} resumes`);
+
+    // Generate batch folder name
+    const batchFolderName = generateBatchFolderName();
+    
+    // Ensure directories exist with batch subfolders
+    const uploadedResumesDir = join(process.cwd(), "resumes_uploaded", batchFolderName);
+    const parsedResumesDir = join(process.cwd(), "resumes_parsed", batchFolderName);
+    
+    await ensureDirectoryExists(uploadedResumesDir);
+    await ensureDirectoryExists(parsedResumesDir);
+
+    // Process resumes in batches
+    const { processedResults, parsedFilenames } = await processResumeBatch(
+      resumes, 
+      batchFolderName, 
+      uploadedResumesDir, 
+      parsedResumesDir, 
+      batchSize
+    );
 
     const successfulCount = processedResults.filter(r => r.success).length;
     const failedCount = processedResults.filter(r => !r.success).length;
@@ -147,10 +190,12 @@ export async function POST(req) {
       processedResults,
       parsedFilenames, // Only successful ones
       batchFolder: batchFolderName,
+      batchSize: batchSize,
       stats: {
         total: resumes.length,
         successful: successfulCount,
-        failed: failedCount
+        failed: failedCount,
+        batches: Math.ceil(resumes.length / batchSize)
       }
     });
 
