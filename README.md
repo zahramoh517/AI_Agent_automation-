@@ -1,33 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Resume Ranker
+
+An intelligent resume ranking system that uses AI to match candidates with job descriptions. Built with Next.js, Python, and Groq AI.
+
+## Features
+
+### Single Resume Processing
+- Upload individual PDF resumes
+- AI-powered parsing and extraction
+- Match scoring against job descriptions
+- Detailed explanations for matches
+
+### Batch Resume Processing
+- **Folder Drag & Drop**: Simply drag and drop a folder containing multiple PDF resumes
+- **Multiple File Selection**: Select multiple PDF files individually
+- **Organized Output**: Files are automatically organized into timestamped batch folders
+- **Optimized Batch Processing**: Processes resumes in smaller chunks (8-15 per batch) to prevent rate limits
+- **Smart Delays**: Longer delays between batches (3-5 seconds) for large quantities
+- **Progress Persistence**: Saves progress to localStorage, survives browser refreshes
+- **Rate Limit Protection**: Automatic retry logic with exponential backoff for API rate limits
+- **Bulk Matching**: Process dozens of resumes simultaneously
+- **Ranked Results**: View all candidates ranked by match score
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+ 
+- Python 3.8+
+- Groq API key
 
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd AI_Agent_automation-
+```
+
+2. Install dependencies:
+```bash
+npm install
+pip install -r requirements.txt
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Add your Groq API key to .env
+```
+
+4. Run the development server:
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Single Resume Mode
+1. Select "Single Resume" mode
+2. Upload a PDF resume
+3. Paste the job description
+4. Click "Rank Resume" to get match score and explanation
+
+### Batch Resume Mode
+1. Select "Multiple Resumes" mode
+2. Either:
+   - **Drag and drop a folder** containing PDF resumes, or
+   - **Select multiple PDF files** individually
+3. Paste the job description
+4. Click "Rank Resumes" to process all files
+5. View ranked results in the table
+
+### File Organization
+When processing multiple resumes, files are automatically organized:
+
+```
+resumes_uploaded/
+  └── batch_2024-01-15T10-30-45/
+      ├── resume1.pdf
+      ├── resume2.pdf
+      └── ...
+
+resumes_parsed/
+  └── batch_2024-01-15T10-30-45/
+      ├── resume1_parsed.json
+      ├── resume2_parsed.json
+      └── ...
+```
+
+## Architecture
+
+- **Frontend**: Next.js with React, Tailwind CSS
+- **Backend APIs**: Next.js API routes
+- **AI Processing**: Python with CrewAI and Groq
+- **File Storage**: Local file system with organized folders
+
+## API Endpoints
+
+- `POST /api/resume` - Process single resume
+- `POST /api/resume/batch` - Process multiple resumes
+- `POST /api/match` - Match single resume against job description
+- `POST /api/match/batch` - Match multiple resumes against job description
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about the technologies used:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Next.js Documentation](https://nextjs.org/docs)
+- [CrewAI Documentation](https://docs.crewai.com/)
+- [Groq AI](https://groq.com/)
 
 ## Deploy on Vercel
 

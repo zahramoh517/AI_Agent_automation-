@@ -1,5 +1,6 @@
 import sys
 import json
+import re
 from crewai import Crew
 from crew_AI.tasks import candidate_matching_task
 
@@ -24,5 +25,23 @@ for event, payload in results:
         match_result = str(payload[0]).strip()
         break
 
-# ✅ Print only clean JSON for Node.js
-print(json.dumps({"match_score": match_result}))
+# Parse the output to extract match score and explanation
+def parse_match_output(output):
+    # Extract match score
+    score_match = re.search(r'Match Score:\s*(\d+)', output, re.IGNORECASE)
+    match_score = score_match.group(1) if score_match else "0"
+    
+    # Extract explanation
+    explanation_match = re.search(r'Explanation:\s*(.+?)(?:\n\n|$)', output, re.IGNORECASE | re.DOTALL)
+    explanation = explanation_match.group(1).strip() if explanation_match else "No explanation provided"
+    
+    return {
+        "match_score": match_score,
+        "explanation": explanation
+    }
+
+# Parse the result
+parsed_result = parse_match_output(match_result)
+
+# Print clean JSON for Node.js
+print(json.dumps(parsed_result))
