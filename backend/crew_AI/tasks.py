@@ -82,12 +82,7 @@ Explanation:
 
 
 
-# 4) JD enhancement
-jd_enhancement_task = Task(
-    description="Polish the job description to make it clearer, more inclusive, and aligned with what candidates value.",
-    expected_output="Enhanced job description.",
-    agent=jd_enhancer_agent
-)
+
 
 # 5) Pipeline orchestration
 pipeline_orchestration_task = Task(

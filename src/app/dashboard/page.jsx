@@ -130,7 +130,7 @@ export default function Dashboard() {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between shadow-sm">
         <div>
-          <div className="text-2xl font-bold px-6 py-4 text-[#2563EB]">YourApp</div>
+          <div className="text-2xl font-bold px-6 py-4 text-[#2563EB]">divas</div>
           <nav className="space-y-2 mt-4">
             <a
               href="#"
